@@ -4,7 +4,7 @@ This is the official code for:
 
 #### Repurposing GANs for One-shot Semantic Part Segmentation
 
-<sup>Nontawat Tritrong*, Pitchaporn Rewatbowornwong*, Supasorn Suwajanakorn(https://www.supasorn.com/)<sup>
+<sup>Nontawat Tritrong*, Pitchaporn Rewatbowornwong*, [Supasorn Suwajanakorn](https://www.supasorn.com/)<sup>
 
 <sup>\* authors contributed equally <sup>
 
