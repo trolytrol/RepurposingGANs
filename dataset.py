@@ -13,39 +13,28 @@ from function import get_stack, load_mask
 
 
 class FewshotDataset(Dataset):
-    def __init__(self, imgs_dir, mask_dir, gen_model, img_size,
-                mask_size, feat_size=256):
-        
-        self.imgs_dir = imgs_dir
+    '''
+    Get pairs of precomputed features and masks
+    
+    '''
+    def __init__(self, feature_dir, mask_dir,  mask_size, feat_size):
+        self.feature_dir = feature_dir
         self.mask_dir = mask_dir
 
-        self.img_file = listdir(imgs_dir)
+        self.feature_file = listdir(feature_dir)
 
-        self.gen_model = gen_model
-        self.img_size = img_size
         self.mask_size = mask_size
         self.feat_size = feat_size
 
     def __len__(self):
-        return len(self.img_file)
+        return len(self.feature_file)
 
     def __getitem__(self, i):
-        img_name = self.img_file[i]
-        mask_name = self.img_file[i].split('.')[0]
+        file_name = self.feature_file[i]
+        mask_name = self.feature_file[i].split('.')[0]
 
-        path = os.path.join(self.imgs_dir, img_name)
-        img = Image.open(path).resize((self.img_size, self.img_size))
-        img.load()
-        img = np.asarray(img)
-
-        if np.max(img) > 1:
-            img = img/255.
-        img = np.transpose(img, [2,0,1]).astype(np.float32)
-
-        img = torch.from_numpy(np.expand_dims(img, 0)).cuda()
+        feature = torch.load(os.path.join(self.feature_dir, file_name)) #[c, h, w]
         mask = load_mask(self.mask_dir, [mask_name], self.mask_size)
-
-        feature = get_stack(self.model, img, self.feat_size)
 
         seg_flat = mask[0].reshape(-1,4)
         seg_flat = np.argmax(seg_flat, axis=1)

@@ -139,7 +139,6 @@ def load_mask(mask_path, mask_name, mask_class):
     mask = mask[:,:,:,1:]
     return mask
 
-
 def viz(label, seg_size):
     '''
     (In) label : (H*W, 1)

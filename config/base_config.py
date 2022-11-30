@@ -19,6 +19,23 @@ cfg.seg_model.mask_size = 512
 cfg.seg_model.feature_size = 512
 cfg.seg_model.feature_dim = 5056
 
+cfg.seg_train_config = CN()
+cfg.seg_train_config.lr = 0.001
+cfg.seg_train_config.lr_decay = 0.9
+cfg.seg_train_config.batch_size = 1
+cfg.seg_train_config.epochs = 1000
+cfg.seg_train_config.augmentation = True
+cfg.seg_train_config.wd = 1e-3
+
+
+cfg.unet_train_config = CN()
+cfg.unet_train_config.lr = 0.001
+cfg.unet_train_config.batch_size = 1
+cfg.unet_train_config.epochs = 1000
+cfg.unet_train_config.augmentation = True
+cfg.unet_train_config.wd = 1e-3
+
+
 
 def get_cfg_defaults():
     """Get a yacs CfgNode object with default values for my_project."""
