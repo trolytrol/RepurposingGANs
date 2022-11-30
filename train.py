@@ -1,5 +1,6 @@
-import torch, os, argparse
+import torch, os, argparse, logging
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from config.base_config import parse_args
 
 from dataset import FewshotDataset
@@ -9,9 +10,12 @@ parser = argparse.ArgumentParser(description='Train the Fewshot segment on featu
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--feature_dir', required=True)
 parser.add_argument('--mask_dir', required=True)
+parser.add_argument('--checkpoint_dir', default=None)
 args = parser.parse_args()
 
 def train_fewshot(net, cfg, outdir):
+
+    writer = SummaryWriter(comment=f'Name_{cfg.name}')
     trainDataset = FewshotDataset(args.feature_dir, args.mask_dir, 
                         img_size=cfg.seg_model.img_size,
                         mask_size=cfg.seg_model.mask_size,
@@ -37,6 +41,7 @@ def train_fewshot(net, cfg, outdir):
             optimizer.zero_grad()
             prediction = net(data)
             loss = criterion(prediction, target)
+
             total_loss+=loss
             loss.backward()
             optimizer.step()
@@ -54,15 +59,13 @@ def main():
                  f'\t{net.n_classes} output channels (classes)\n'
                  f'\t{"Bilinear" if net.bilinear else "Transposed conv"} upscaling')
     
-    net = dilated_CNN_61(cfg., 4864)
-    
-    if args.load:
+    net = dilated_CNN_61(cfg.seg_model.num_cls, cfg.seg_model.feature_dim)
+    if args.checkpoint_dir:
         net.load_state_dict(
-            torch.load(args.load, map_location=cfg.device))
-        logging.info(f'Model loaded from {args.load}')
+            torch.load(args.checkpoint_dir, map_location=cfg.device))
+        logging.info(f'Model loaded from {args.checkpoint_dir}')
 
     net.to(cfg.device)
-
     train_fewshot(net, cfg)
 
 if __name__ == '__main__':

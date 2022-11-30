@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 from torch import optim
 from torch.utils.tensorboard import SummaryWriter
-from dataset import BasicDataset, ConfidentDataset
+from dataset import UNetDataset
 from torch.utils.data import DataLoader, random_split
 import torch.nn.functional as F
 
@@ -16,12 +16,20 @@ from tqdm import tqdm
 
 from eval import eval_npy
 from unet import UNet
-from floss import Mask_MSE_loss, softmax_cross_entropy_with_softtarget
+
+from config.base_config import parse_args
 
 
 Dir_img = '/home/nontawat/gen_code'
 Dir_mask = '/home/nontawat/gen_code'
 Dir_checkpoint = '/home2/nontawat/som_8_11/'
+
+parser = argparse.ArgumentParser(description='Train the Auto-shot',
+                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('--feature_dir', required=True)
+parser.add_argument('--mask_dir', required=True)
+parser.add_argument('--checkpoint_dir', default=None)
+args = parser.parse_args()
 
 
 def train_unet(net,
@@ -43,14 +51,14 @@ def train_unet(net,
     dir_mask = os.path.join(Dir_mask, nam, 'Mask')
     dir_checkpoint = os.path.join(Dir_checkpoint, nam)
 
-    dataset = ConfidentDataset(dir_img, dir_mask, num_class, size, trans, cut)
+    dataset = UNetDataset(dir_img, dir_mask, num_class, size, trans, cut)
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
     train, val = random_split(dataset, [n_train, n_val])
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True)
     val_loader = DataLoader(val, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True, drop_last=True)
     cpp = dir_checkpoint.split('/')[-1]
-    writer = SummaryWriter(comment=f'CP_{cpp}_LR_{lr}_BS_{batch_size}_SIZE_{size}')
+    writer = SummaryWriter(comment=f'Name_{cfg.name}')
 
     global_step = 0
 
@@ -69,21 +77,6 @@ def train_unet(net,
 
     optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-8)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min' , patience=20, min_lr=1e-6)
-    # decayRate = 0.96
-    # scheduler = optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=decayRate)
-
-    if opt_dict is not None:
-        optimizer.load_state_dict(opt_dict)
-
-    # if net.n_classes > 1:
-    #     logging.info('Using Multi-classes MASK-MSE')
-    #     #criterion = nn.CrossEntropyLoss()
-    #     #criterion = nn.NLLLoss(ignore_index = 0) # Int target
-    #     #criterion = Mask_MSE_loss().cuda()
-    # else:
-    #     #criterion = nn.BCEWithLogitsLoss()
-    #     logging.info('Using single-class FL')
-    #     criterion = FocalLoss()
 
     for epoch in range(epochs):
         net.train()
@@ -93,7 +86,6 @@ def train_unet(net,
             for batch in train_loader:
                 imgs = batch['image'].cuda()
                 true_masks = batch['mask'].cuda()
-                # flag_masks = batch['flag'][:,0,:,:].cuda()
 
                 pred_masks = net(imgs)
 
@@ -170,58 +162,35 @@ def get_args():
 
 
 if __name__ == '__main__':
+    cfg = parse_args()
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    args = get_args()
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    logging.info(f'Using device {device}')
+    logging.info(f'Using device {cfg.device}')
 
-    # Change here to adapt to your data
-    # n_channels=3 for RGB images
-    # n_classes is the number of probabilities you want to get per pixel
-    #   - For 1 class and background, use n_classes=1
-    #   - For 2 classes, use n_classes=1
-    #   - For N > 2 classes, use n_classes=N
-    net = UNet(n_channels=3, n_classes=args.num_class, bilinear=True, mse=True)
+    net = UNet(n_channels=3, n_classes=cfg.seg_model.num_cls, bilinear=True, mse=True)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n'
                  f'\t{"Bilinear" if net.bilinear else "Transposed conv"} upscaling')
     start_ep=0
-    if args.load:
+    if args.checkpoint_dir:
         net.load_state_dict(
-            torch.load(args.load, map_location=device))
-        logging.info(f'Model loaded from {args.load}')
+            torch.load(args.checkpoint_dir, map_location=cfg.device))
+        logging.info(f'Model loaded from {args.checkpoint_dir}')
 
-    op_cp = None
-    if args.trainload:
-        cp_dict = torch.load(args.trainload, map_location=device)
-        net.load_state_dict(cp_dict['model_state_dict'])
-        op_cp = cp_dict['optimizer_state_dict']
-        start_ep = cp_dict['epoch']
-        logging.info(f'Continue training from {args.trainload}')
+    net.to(cfg.device)
 
-    net.to(device=device)
-
-    try:
-        train_net(net=net,
-                device=device,
-                nam=args.name,
-                num_class=args.num_class,
-                size=args.size,
-                trans=args.trans,
-                epochs=args.epochs,
-                start=start_ep,
-                batch_size=args.batchsize,
-                lr=args.lr,
-                val_percent=args.val / 100,
-                cut=args.cut,
-                save_cp=True,
-                opt_dict=op_cp)
-    except KeyboardInterrupt:
-        torch.save(net.state_dict(), 'INTERRUPTED.pth')
-        logging.info('Saved interrupt')
-        try:
-            sys.exit(0)
-        except SystemExit:
-            os._exit(0)
+    train_net(net=net,
+            device=device,
+            nam=args.name,
+            num_class=args.num_class,
+            size=args.size,
+            trans=args.trans,
+            epochs=args.epochs,
+            start=start_ep,
+            batch_size=args.batchsize,
+            lr=args.lr,
+            val_percent=args.val / 100,
+            cut=args.cut,
+            save_cp=True,
+            opt_dict=op_cp)
 

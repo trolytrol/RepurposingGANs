@@ -1,3 +1,5 @@
+name: 'CelebA-fewshot-10class'
+
 gen_model:
   img_size: 1024
   style_dim: 512

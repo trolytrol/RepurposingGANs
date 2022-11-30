@@ -35,6 +35,9 @@ cfg.unet_train_config.epochs = 1000
 cfg.unet_train_config.augmentation = True
 cfg.unet_train_config.wd = 1e-3
 
+cfg.data = CN()
+cfg.data.gen_model_dir = "models/gen_models"
+cfg.data.seg_model_dir = "models/seg_models"
 
 
 def get_cfg_defaults():
@@ -75,16 +78,6 @@ def parse_args(ipynb={'mode':False, 'cfg':None}):
         cfg_list = cmd_to_cfg_format(opts)
         cfg.merge_from_list(cfg_list)
 
-    # Some parameters in config need to be updated
-    cfg = update_params(cfg)
-    return cfg
-
-def update_params(cfg):
-    '''
-    Recalculate new config paramters
-    1. conditioned-parameters shape
-    '''
-    cfg.param_model.n_params = []
     return cfg
 
 def cmd_to_cfg_format(opts):
