@@ -1,0 +1,17 @@
+gen_model:
+  img_size: 1024
+  style_dim: 512
+  n_mlp: 8
+  stylegan_dict: ['convs.0','convs.1','convs.2','convs.3','convs.4',
+                  'convs.5','convs.6','convs.7','convs.8','convs.9',
+                  'convs.10','convs.11','convs.12','convs.13','convs.14','convs.15']
+
+seg_model:
+  num_cls: 10
+  mask_size: 512
+  feature_size: 512
+  feature_dim: 5056
+
+data:
+  gen_model_dir: "models/gen_models"
+  seg_model_dir: "models/seg_models"
