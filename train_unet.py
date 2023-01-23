@@ -27,6 +27,13 @@ parser.add_argument('--mask_dir', required=True)
 parser.add_argument('--checkpoint_dir', default=None)
 args = parser.parse_args()
 
+parser = argparse.ArgumentParser(description='Train the Auto-shot',
+                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('--feature_dir', required=True)
+parser.add_argument('--mask_dir', required=True)
+parser.add_argument('--checkpoint_dir', default=None)
+args = parser.parse_args()
+
 
 def train_unet(net, cfg):
     dataset = UNetDataset(args.image_dir, args.mask_dir, cfg.seg_model.num_cls, 

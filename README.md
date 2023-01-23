@@ -1,4 +1,3 @@
-# RepurposingGANs
 
 This is the official code for:
 
