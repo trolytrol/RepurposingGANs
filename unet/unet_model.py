@@ -7,13 +7,11 @@ from .unet_parts import *
 
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=True, mse=False):
+    def __init__(self, n_channels, n_classes, bilinear=True):
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
-        self.init_val = 0.02
-        self.mse = mse
 
         self.inc = DoubleConv(n_channels, 64)
         self.down1 = Down(64, 128)
@@ -26,7 +24,6 @@ class UNet(nn.Module):
         self.up3 = Up(256, 128 // factor, bilinear)
         self.up4 = Up(128, 64, bilinear)
         self.outc = OutConv(64, n_classes)
-        self.logsm = nn.LogSoftmax(dim=1)
 
     def forward(self, x):
         x1 = self.inc(x)
@@ -38,7 +35,4 @@ class UNet(nn.Module):
         x = self.up2(x, x3)
         x = self.up3(x, x2)
         x = self.up4(x, x1)
-        logits = self.outc(x)
-        if self.mse==False:
-            logits = self.logsm(logits)
-        return logits
+        return x

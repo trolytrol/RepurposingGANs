@@ -1,28 +1,27 @@
 from os.path import splitext
 from os import listdir
 import numpy as np
-from glob import glob
 import torch, os
 import random
 
 from torch.utils.data import Dataset
+import torch.nn.functional as F
+import torchvision.transforms as transforms
 import logging
 from PIL import Image
 
-from function import get_stack, load_mask
+from utils import get_stack, load_mask
 
 
 class FewshotDataset(Dataset):
     '''
-    Get pairs of precomputed features and masks
+    Get pairs of "precomputed" features and masks
     
     '''
     def __init__(self, feature_dir, mask_dir,  mask_size, feat_size):
         self.feature_dir = feature_dir
         self.mask_dir = mask_dir
-
         self.feature_file = listdir(feature_dir)
-
         self.mask_size = mask_size
         self.feat_size = feat_size
 
@@ -56,25 +55,19 @@ class UNetDataset(Dataset):
 
         logging.info(f'Creating dataset with {len(self.ids)} examples')
 
-    def transform_npy(self, img, label, size):
-        # flag_mask = torch.ones([3, size, size], dtype=torch.int32) # Mask use for Loss 
-
+    def transform_npy(self, img, label):
         ang, trans, scl, shr = transforms.RandomAffine.get_params(degrees = (-10,10),
-                                                                translate = (0.4,0.4),
+                                                                translate = (0.5,0.5),
                                                                 scale_ranges=(0.5,2.0),
                                                                 shears=None,
-                                                                img_size=(size,size))
+                                                                img_size=(self.size,self.size))
         img = transforms.functional.affine(img, ang, trans, scl, shr, fillcolor=0)
         label = transforms.functional.affine(label, ang, trans, scl, shr, fillcolor=0)
-        # flag_mask = transforms.functional.affine(flag_mask, ang, trans, scl, shr, fillcolor=0)
-
         if random.random() > 0.5:
             img = transforms.functional.hflip(img)
             label = transforms.functional.hflip(label)
-            # flag_mask = transforms.functional.hflip(flag_mask)
-
         img = transforms.ToTensor()(img)
-        return img, label #, flag_mask
+        return img, label
 
     def __len__(self):
         return len(self.ids)
@@ -99,5 +92,4 @@ class UNetDataset(Dataset):
         return {
             'image': img,
             'mask': mask,
-            #'flag': flag
         }
