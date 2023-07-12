@@ -24,10 +24,10 @@ def gen_gan(gen_model, seg_model,
             img_path, mask_path):
     with torch.no_grad():
         for idx in tqdm(range(num_pic)):
-            z_noise = utils.z_sample(seed=idx).unsqueeze(0) # [1, 1, 512]
-            stack, rgb_im = utils.get_stack(gen_model, z_noise.to(device), feat_size)
+            z_noise = z_sample(seed=idx).unsqueeze(0) # [1, 1, 512]
+            stack, rgb_im = get_stack(gen_model, z_noise.to(device), feat_size)
 
-            rgb_im = ((rgb_im + 1) / 2 * 255)
+            rgb_im = ((rgb_im[0] + 1) / 2 * 255)
             rgb_im = rgb_im.permute(0, 2, 3, 1).clamp(0, 255).byte().cpu().numpy()
 
 
@@ -35,7 +35,7 @@ def gen_gan(gen_model, seg_model,
             output = output[0].reshape((output.shape[1], -1)).T # [hw, c] for visualize
 
             _, argmax_out = output.max(dim=1) # [hw, 1]
-            mask = utils.viz(argmax_out, feat_size)
+            mask = viz(argmax_out, feat_size)
 
             for (prefix, suffix, file, size) in [(mask_path, 'mask.png', mask, mask_size),
                                                 (img_path, 'img.jpg', rgb_im[0], img_size)]:
@@ -52,8 +52,7 @@ def main():
 
     gen_model = model.Generator(size=cfg.gen_model.img_size, 
                             style_dim=cfg.gen_model.style_dim, 
-                            n_mlp=cfg.gen_model.n_mlp, 
-                            input_is_Wlatent=False)
+                            n_mlp=cfg.gen_model.n_mlp)
     gen_model.load_state_dict(torch.load(cfg.data.gen_model_dir)['g_ema'], strict=False)
     gen_models = InstrumentedModel(gen_model)
     gen_models.eval()
