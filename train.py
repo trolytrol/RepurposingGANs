@@ -63,6 +63,7 @@ def train_fewshot(net, cfg, outdir):
 
 def main():
     cfg = parse_args()
+    
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     logging.info(f'Using device {cfg.device}')
     logging.info(f'Network:\n'

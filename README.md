@@ -15,12 +15,14 @@ pip install -r requirements.txt
 ```
 
 ## Extracting GAN's feature
-To reduce the computational cost, we precompute GAN's feature before training.
+To reduce the computational cost, we precompute GAN's features.
 ```
-python gen_feature.py
+python gen_feature.py --outdir fewshot --num_pic 1 --cfg config/celeba_10c.yaml
 ```
+Then, you can use the output images to create masks for the few-shot training.
 
 ## Few-shot training
+To train the Few-shot network:
 ```
 python train.py --feature_dir fewshot/features --mask_dir fewshot/mask --cfg config/celeba_10c.yaml
 ```
@@ -28,7 +30,7 @@ python train.py --feature_dir fewshot/features --mask_dir fewshot/mask --cfg con
 ## Auto-shot training
 After few-shot training, you can generate image-mask pairs for auto-shot training.
 ```
-python gen_dataset.py --outdir autoshot_dataset --num_pic 5000
+python gen_dataset.py --outdir autoshot_dataset --num_pic 5000 --cfg config/celeba_10c.yaml
 ```
 Then, Auto-shot can be trained with:
 ```

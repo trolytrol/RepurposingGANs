@@ -16,10 +16,10 @@ def get_stack(inst_gen_model, latent, stack_size):
         for key in all_layers:
             value = features[key][0].unsqueeze(0)
             if value.shape[2] < stack_size:
-                md = 'bilinear' # Upsample
+                md = 'bilinear' # Upsampling
                 ac = True # Align_corner
             else:
-                md = 'area' # Downsample
+                md = 'area' # Downsampling
                 ac = None # Align_corner
             resized = F.interpolate(value, size=(stack_size, stack_size),
                                     mode=md, align_corners=ac)
@@ -27,7 +27,7 @@ def get_stack(inst_gen_model, latent, stack_size):
                 stacks = resized
             else:
                 stacks = torch.cat((stacks, resized), dim=1)
-    #stacks : [sum, h, w]
+    #stacks : [sum, stack_size, stack_size]
     return stacks, img
 
 def z_sample(depth=512, seed=None):

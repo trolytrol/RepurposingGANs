@@ -7,12 +7,11 @@ from nethook import InstrumentedModel
 from stylegan2_pytorch import model
 from config.base_config import parse_args
 
-from dataset import get_stack
 from network import dilated_CNN_61
 from utils import *
 
 
-device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 parser = argparse.ArgumentParser(description='Generate auto-shot dataset')
 parser.add_argument('--outdir', required=True)
@@ -20,12 +19,13 @@ parser.add_argument('--num_pic', default=500, type=int)
 args = parser.parse_args()
 
 def gen_gan(gen_model, seg_model,
-            num_pic, img_size, mask_size, feat_size,
+            num_pic, img_size,
+            mask_size, feat_size,
             img_path, mask_path):
     with torch.no_grad():
         for idx in tqdm(range(num_pic)):
             z_noise = utils.z_sample(seed=idx).unsqueeze(0) # [1, 1, 512]
-            stack, rgb_im = get_stack(gen_model, z_noise.to(device), feat_size)
+            stack, rgb_im = utils.get_stack(gen_model, z_noise.to(device), feat_size)
 
             rgb_im = ((rgb_im + 1) / 2 * 255)
             rgb_im = rgb_im.permute(0, 2, 3, 1).clamp(0, 255).byte().cpu().numpy()
@@ -47,12 +47,6 @@ def gen_gan(gen_model, seg_model,
             torch.save(output.cpu(), logit_file)
 
 
-conf = {
-    'celeba': [512, 5056, :],
-    'horse': [256, 4864, 12],
-    'car': [512, 4992, 14]
-}
-
 def main():
     cfg = parse_args()
 
@@ -60,14 +54,14 @@ def main():
                             style_dim=cfg.gen_model.style_dim, 
                             n_mlp=cfg.gen_model.n_mlp, 
                             input_is_Wlatent=False)
-    gen_model.load_state_dict(torch.load(args.gen_path)['g_ema'], strict=False)
+    gen_model.load_state_dict(torch.load(cfg.data.gen_model_dir)['g_ema'], strict=False)
     gen_models = InstrumentedModel(gen_model)
     gen_models.eval()
     gen_models.to(device)
     gen_models.retain_layers(cfg.gen_model.stylegan_dict)
 
-    seg_model = dilated_CNN_61(args.num_class, 4864)
-    seg_model.load_state_dict(torch.load(args.seg_path))
+    seg_model = dilated_CNN_61(cfg.seg_model.num_cls, cfg.seg_model.feature_dim)
+    seg_model.load_state_dict(torch.load(cfg.data.seg_model_dir))
     seg_model.eval()
     seg_model.to(device)
 
@@ -77,7 +71,8 @@ def main():
     os.makedirs(mask_path, exist_ok=True)
 
     gen_gan(gen_models, seg_model,
-            args.num_pic, args.img_size, args.mask_size, args.feat_size,
+            args.num_pic, cfg.gen_model.img_size, 
+            cfg.seg_model.mask_size, cfg.seg_model.feature_size,
             img_path, mask_path)
 
 

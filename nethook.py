@@ -1,4 +1,6 @@
 '''
+This code is taken from https://github.com/CSAILVision/GANDissect.
+
 Utilities for instrumenting a torch model.
 
 InstrumentedModel will wrap a pytorch model and allow hooking
